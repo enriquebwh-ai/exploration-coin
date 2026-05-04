@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exploration Coin - 3D Crypto Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <div id="auth-screen" class="screen active">
+            <div class="auth-container">
+                <div class="logo">
+                    <h1>EXPLORATION<span>COIN</span></h1>
+                    <p class="tagline">Explora. Descubre. Minera.</p>
+                </div>
+                <div class="auth-tabs">
+                    <button class="tab-btn active" data-tab="login">Iniciar Sesión</button>
+                    <button class="tab-btn" data-tab="register">Registrarse</button>
+                </div>
+                <form id="login-form" class="auth-form active">
+                    <div class="form-group">
+                        <label>Usuario</label>
+                        <input type="text" id="login-username" placeholder="Tu nombre de usuario" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="login-password" placeholder="Tu contraseña" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Conectar Wallet</button>
+                </form>
+                <form id="register-form" class="auth-form">
+                    <div class="form-group">
+                        <label>Usuario</label>
+                        <input type="text" id="reg-username" placeholder="Elige tu nombre de usuario" required minlength="3">
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="reg-password" placeholder="Crea una contraseña segura" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label>Confirmar Contraseña</label>
+                        <input type="password" id="reg-password-confirm" placeholder="Confirma tu contraseña" required>
+                    </div>
+                    <div class="warning-box">
+                        <span class="warning-icon">⚠️</span>
+                        <p>Tu mnemonic será generado automáticamente. Guárdalo en un lugar seguro - es la única forma de recuperar tu wallet.</p>
+                    </div>
+                    <button type="submit" class="btn-primary">Crear Wallet</button>
+                </form>
+                <div id="auth-error" class="error-box hidden"></div>
+                <div id="mnemonic-display" class="mnemonic-box hidden">
+                    <h3>🔐 Guarda tu Frase de Recuperación</h3>
+                    <p class="warning-text">¡NUNCA compartas esta frase con nadie!</p>
+                    <div id="mnemonic-text" class="mnemonic-text"></div>
+                    <button id="confirm-mnemonic" class="btn-primary">Ya la he guardado</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="game-container"></div>
+
+            <div id="top-bar">
+                <div class="logo-small">
+                    <span class="logo-icon">◆</span>
+                    <span>EXPLORATION COIN</span>
+                </div>
+                <div class="top-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Balance</span>
+                        <span id="top-balance" class="stat-value">0 EXPL</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tokens</span>
+                        <span id="top-tokens" class="stat-value">0</span>
+                    </div>
+                </div>
+                <button id="wallet-btn" class="btn-wallet">
+                    <span class="wallet-icon">👛</span>
+                    <span id="wallet-address">0x0000...0000</span>
+                </button>
+            </div>
+
+            <div id="left-panel">
+                <div class="panel-section">
+                    <h3 class="section-title">
+                        <span class="icon">📊</span> Estadísticas
+                    </h3>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <span class="stat-label">Tu Balance</span>
+                            <span id="balance" class="stat-value large">0 EXPL</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label">Tokens Globales</span>
+                            <span id="global-tokens" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label">Restantes</span>
+                            <span id="tokens-remaining" class="stat-value">5,000,000</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label">Mapa Explorado</span>
+                            <span id="map-explored" class="stat-value">0%</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label">Bioma Actual</span>
+                            <span id="current-biome" class="stat-value">-</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label">Dificultad</span>
+                            <span id="current-chance" class="stat-value">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h3 class="section-title">
+                        <span class="icon">🔍</span> Exploración
+                    </h3>
+                    <div class="explorer-controls">
+                        <button id="auto-explore-btn" class="btn-explore">
+                            <span class="btn-icon">▶</span>
+                            <span>Auto Explorar</span>
+                        </button>
+                        <div id="auto-status" class="auto-status">
+                            <span class="status-dot"></span>
+                            <span>Detenido</span>
+                        </div>
+                    </div>
+                    <div class="coordinates">
+                        <span>X: <strong id="coord-x">-</strong></span>
+                        <span>Z: <strong id="coord-z">-</strong></span>
+                    </div>
+                    <div id="mining-display" class="mining-display"></div>
+                </div>
+
+                <div class="panel-section log-section">
+                    <h3 class="section-title">
+                        <span class="icon">📜</span> Registro de Eventos
+                    </h3>
+                    <div id="event-log" class="event-log">
+                        <div class="log-entry system">Bienvenido a Exploration Coin</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="wallet-modal" class="modal hidden">
+                <div class="modal-content wallet-content">
+                    <button class="modal-close">×</button>
+                    <div class="wallet-header">
+                        <h2>👛 Mi Wallet</h2>
+                    </div>
+                    <div class="wallet-info">
+                        <div class="info-row">
+                            <span class="label">Dirección:</span>
+                            <span id="modal-address" class="value address">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Balance:</span>
+                            <span id="modal-balance" class="value balance">0 EXPL</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="label">Tokens Encontrados:</span>
+                            <span id="modal-tokens" class="value">0</span>
+                        </div>
+                    </div>
+                    <div class="wallet-actions">
+                        <button id="show-mnemonic-btn" class="btn-secondary">
+                            <span>🔐</span> Ver Frase de Recuperación
+                        </button>
+                        <button id="view-history-btn" class="btn-secondary">
+                            <span>📜</span> Historial de Transacciones
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="mnemonic-modal" class="modal hidden">
+                <div class="modal-content mnemonic-content">
+                    <button class="modal-close">×</button>
+                    <div class="warning-header">
+                        <span class="warning-icon">⚠️</span>
+                        <h2>PELIGRO - NO COMPARTAS</h2>
+                    </div>
+                    <p class="mnemonic-warning">Esta es tu frase de recuperación. Si la pierdes, perderás acceso a tu wallet para siempre.</p>
+                    <div id="modal-mnemonic" class="mnemonic-display"></div>
+                    <button id="close-mnemonic" class="btn-primary">Entendido</button>
+                </div>
+            </div>
+
+            <div id="history-modal" class="modal hidden">
+                <div class="modal-content history-content">
+                    <button class="modal-close">×</button>
+                    <h2>📜 Historial de Transacciones</h2>
+                    <div id="tx-list" class="tx-list"></div>
+                </div>
+            </div>
+
+            <div id="token-found-modal" class="modal hidden">
+                <div class="modal-content token-content">
+                    <div class="token-celebration">
+                        <div class="token-icon">🪙</div>
+                        <h2>¡TOKEN DESCUBIERTO!</h2>
+                        <div class="token-number">#<span id="token-number">0</span></div>
+                        <div class="token-details">
+                            <p>Bioma: <span id="token-biome">-</span></p>
+                            <p>Posición: X:<span id="token-x">0</span> Z:<span id="token-z">0</span></p>
+                        </div>
+                        <button id="claim-token" class="btn-primary">¡Fantástico!</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="notification" class="notification hidden">
+                <span class="notification-text"></span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/howler@2.2.3/dist/howler.min.js"></script>
+    <script src="js/core/config.js"></script>
+    <script src="js/core/api.js"></script>
+    <script src="js/core/audio.js"></script>
+    <script src="js/game/terrain.js"></script>
+    <script src="js/game/player.js"></script>
+    <script src="js/game/exploration.js"></script>
+    <script src="js/game/effects.js"></script>
+    <script src="js/wallet/ui.js"></script>
+    <script src="js/game/main.js"></script>
+</body>
+</html>
