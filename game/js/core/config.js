@@ -1,5 +1,5 @@
 const CONFIG = {
-    API_URL: 'http://localhost:3005/api',
+    API_URL: 'http://localhost:3006/api',
     MAP_SIZE: 600,
     TILE_SIZE: 1,
     CAMERA: {

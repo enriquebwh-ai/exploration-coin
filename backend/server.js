@@ -9,49 +9,15 @@ const initSqlJs = require('sql.js');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 3005;
+const PORT = process.env.PORT || 3006;
 
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", "data:", "blob:"],
-            connectSrc: ["'self'", "http://localhost:*"],
-            fontSrc: ["'self'", "data:"],
-            objectSrc: ["'none'"],
-            mediaSrc: ["'self'"],
-            frameSrc: ["'none'"]
-        }
-    },
-    crossOriginEmbedderPolicy: false
-}));
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 10,
-    message: { error: 'Too many authentication attempts, please try again later' }
-});
-
-const apiLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 100,
-    message: { error: 'Too many requests, please slow down' }
-});
-
-const exploreLimiter = rateLimit({
-    windowMs: 1000,
-    max: 5,
-    message: { error: 'Exploration rate limit exceeded' }
-});
-
-app.use('/api/auth', authLimiter);
-app.use('/api/', apiLimiter);
-app.use('/api/game/explore', exploreLimiter);
+app.use(rateLimit({ windowMs: 60000, max: 100 }));
+app.use('/api/game/explore', rateLimit({ windowMs: 1000, max: 5 }));
 
 let db = null;
 const dbPath = path.join(__dirname, '..', 'database', 'exploration_coin.db');
@@ -72,8 +38,7 @@ function run(sql, params = []) {
         stmt.step();
         const row = stmt.get();
         stmt.free();
-        const lastInsertRowid = row ? row[0] : 0;
-        return { lastInsertRowid };
+        return { lastInsertRowid: row ? row[0] : 0 };
     } catch (error) {
         console.error('DB Error:', error);
         throw error;
@@ -113,15 +78,7 @@ function all(sql, params = []) {
     }
 }
 
-function prepare(sql) {
-    return {
-        run: (...params) => run(sql, params),
-        get: (...params) => get(sql, params),
-        all: (...params) => all(sql, params)
-    };
-}
-
-global.db = { run, get, all, prepare, saveDatabase };
+global.db = { run, get, all, saveDatabase };
 
 const authRoutes = require('./routes/auth');
 const walletRoutes = require('./routes/wallet');
@@ -149,19 +106,66 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.post('/api/test-account', async (req, res) => {
+app.post('/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        const user = global.db.get('SELECT * FROM users WHERE LOWER(username) = ?', [username.toLowerCase()]);
+        if (!user) {
+            return res.json({ success: false, error: 'User not found' });
+        }
+
+        const bcrypt = require('bcryptjs');
+        const valid = await bcrypt.compare(password, user.password_hash);
+        if (!valid) {
+            return res.json({ success: false, error: 'Invalid password' });
+        }
+
+        const wallet = global.db.get('SELECT balance FROM wallets WHERE user_id = ?', [user.id]);
+        const jwt = require('jsonwebtoken');
+        const sessionToken = jwt.sign(
+            { id: user.id, username: user.username, address: user.address },
+            process.env.JWT_SECRET || 'exploration-coin-secret-key-2026',
+            { expiresIn: '30d' }
+        );
+
+        global.db.run('UPDATE users SET session_token = ? WHERE id = ?', [sessionToken, user.id]);
+
+        res.json({
+            success: true,
+            data: {
+                username: user.username,
+                address: user.address,
+                balance: wallet?.balance || 0,
+                sessionToken
+            }
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.json({ success: false, error: error.message });
+    }
+});
+
+app.post('/test-account', async (req, res) => {
     try {
         const bcrypt = require('bcryptjs');
         const { ethers } = require('ethers');
-        const { v4: uuidv4 } = require('uuid');
         const jwt = require('jsonwebtoken');
 
-        const testUsername = 'testuser';
-        const testPassword = 'test123';
+        const testUsername = 'demo';
+        const testPassword = 'demo123';
 
         const existing = global.db.get('SELECT id FROM users WHERE username = ?', [testUsername]);
         if (existing) {
-            return res.json({ success: true, message: 'Test account already exists', data: { username: testUsername, password: testPassword } });
+            return res.json({
+                success: true,
+                data: {
+                    username: testUsername,
+                    password: testPassword,
+                    address: global.db.get('SELECT address FROM users WHERE username = ?', [testUsername])?.address
+                }
+            });
         }
 
         const wallet = ethers.Wallet.createRandom();
@@ -171,27 +175,19 @@ app.post('/api/test-account', async (req, res) => {
 
         global.db.run('INSERT INTO users (username, address, password_hash) VALUES (?, ?, ?)', [testUsername, address, passwordHash]);
         const newUser = global.db.get('SELECT id FROM users WHERE address = ?', [address]);
-
         global.db.run('INSERT INTO wallets (user_id, balance) VALUES (?, 100)', [newUser.id]);
 
-        const sessionToken = jwt.sign({ userId: newUser.id, address }, process.env.JWT_SECRET || 'exploration-coin-secret-key-2026', { expiresIn: '7d' });
-        global.db.run('UPDATE users SET session_token = ?, last_login = CURRENT_TIMESTAMP WHERE id = ?', [sessionToken, newUser.id]);
+        const sessionToken = jwt.sign({ id: newUser.id, address }, process.env.JWT_SECRET || 'exploration-coin-secret-key-2026', { expiresIn: '30d' });
+        global.db.run('UPDATE users SET session_token = ? WHERE id = ?', [sessionToken, newUser.id]);
 
         res.json({
             success: true,
-            message: 'Test account created',
-            data: {
-                username: testUsername,
-                password: testPassword,
-                address,
-                mnemonic,
-                sessionToken
-            }
+            data: { username: testUsername, password: testPassword, address, mnemonic, sessionToken }
         });
 
     } catch (error) {
         console.error('Test account error:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -202,8 +198,8 @@ app.get('/', (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-    console.error('❌ Error:', err.message);
-    res.status(500).json({ error: 'Internal server error', message: err.message });
+    console.error('Error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
 });
 
 async function initDatabase() {
@@ -220,24 +216,15 @@ async function initDatabase() {
     const schema = fs.readFileSync(schemaPath, 'utf8');
     db.run(schema);
 
-    global.db = { run, get, all, prepare, saveDatabase };
+    global.db = { run, get, all, saveDatabase };
     saveDatabase();
-    console.log('✅ Database initialized');
+    console.log('Database initialized');
 }
 
 initDatabase().then(() => {
     app.listen(PORT, () => {
-        console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║   🚀 EXPLORATION COIN SERVER                             ║
-║                                                           ║
-║   Server running on: http://localhost:${PORT}              ║
-║   API endpoints: http://localhost:${PORT}/api              ║
-║   Game client: http://localhost:${PORT}                    ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
-        `);
+        console.log(`Server running on http://localhost:${PORT}`);
+        console.log(`Game: http://localhost:${PORT}`);
     });
 }).catch(err => {
     console.error('Failed to initialize database:', err);
