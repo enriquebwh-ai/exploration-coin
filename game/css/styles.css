@@ -36,21 +36,27 @@ body {
 .screen {
     display: none;
     height: 100vh;
+    position: relative;
+    z-index: 1;
 }
 
 .screen.active {
     display: block;
+    z-index: 1;
 }
 
 #auth-screen {
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, var(--background) 0%, #1a1a2e 100%);
+    position: relative;
+    z-index: 1;
 }
 
 #auth-screen.active {
     display: flex;
+    z-index: 1;
 }
 
 .auth-container {
@@ -167,6 +173,15 @@ body {
     border-radius: 10px;
     color: var(--background);
     font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    position: relative;
+    z-index: 1000;
+}
     font-size: 1rem;
     font-weight: 700;
     cursor: pointer;

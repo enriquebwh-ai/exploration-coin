@@ -32,7 +32,7 @@ const Game = {
     dustParticles: [],
 
     async init() {
-        console.log('🎮 Initializing Exploration Coin...');
+        console.log('Initializing Exploration Coin...');
 
         AudioManager.init();
         GameUI.init();
@@ -40,14 +40,20 @@ const Game = {
         const sessionToken = localStorage.getItem('sessionToken');
         if (sessionToken) {
             try {
-                const response = await API.auth.verifySession(sessionToken);
-                if (response.valid) {
-                    GameState.setUser(response.data);
+                const response = await API.auth.verifySession();
+                if (response.valid && response.success) {
+                    GameState.setUser({
+                        address: response.data.address,
+                        username: response.data.username,
+                        balance: response.data.balance || 0
+                    });
                     this.startGame();
+                    return;
                 }
             } catch (error) {
-                console.log('Session invalid, showing auth screen');
+                console.log('Session invalid');
             }
+            localStorage.removeItem('sessionToken');
         }
     },
 

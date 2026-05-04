@@ -149,6 +149,52 @@ app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.post('/api/test-account', async (req, res) => {
+    try {
+        const bcrypt = require('bcryptjs');
+        const { ethers } = require('ethers');
+        const { v4: uuidv4 } = require('uuid');
+        const jwt = require('jsonwebtoken');
+
+        const testUsername = 'testuser';
+        const testPassword = 'test123';
+
+        const existing = global.db.get('SELECT id FROM users WHERE username = ?', [testUsername]);
+        if (existing) {
+            return res.json({ success: true, message: 'Test account already exists', data: { username: testUsername, password: testPassword } });
+        }
+
+        const wallet = ethers.Wallet.createRandom();
+        const address = wallet.address;
+        const mnemonic = wallet.mnemonic.phrase;
+        const passwordHash = await bcrypt.hash(testPassword, 12);
+
+        global.db.run('INSERT INTO users (username, address, password_hash) VALUES (?, ?, ?)', [testUsername, address, passwordHash]);
+        const newUser = global.db.get('SELECT id FROM users WHERE address = ?', [address]);
+
+        global.db.run('INSERT INTO wallets (user_id, balance) VALUES (?, 100)', [newUser.id]);
+
+        const sessionToken = jwt.sign({ userId: newUser.id, address }, process.env.JWT_SECRET || 'exploration-coin-secret-key-2026', { expiresIn: '7d' });
+        global.db.run('UPDATE users SET session_token = ?, last_login = CURRENT_TIMESTAMP WHERE id = ?', [sessionToken, newUser.id]);
+
+        res.json({
+            success: true,
+            message: 'Test account created',
+            data: {
+                username: testUsername,
+                password: testPassword,
+                address,
+                mnemonic,
+                sessionToken
+            }
+        });
+
+    } catch (error) {
+        console.error('Test account error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.use(express.static(path.join(__dirname, '..', 'game')));
 
 app.get('/', (req, res) => {

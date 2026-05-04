@@ -1,6 +1,8 @@
 const API = {
+    baseUrl: CONFIG.API_URL,
+
     async request(endpoint, options = {}) {
-        const url = `${CONFIG.API_URL}${endpoint}`;
+        const url = `${this.baseUrl}${endpoint}`;
         const token = localStorage.getItem('sessionToken');
 
         const headers = {
@@ -14,18 +16,16 @@ const API = {
 
         try {
             const response = await fetch(url, {
-                ...options,
+                method: options.method || 'GET',
                 headers,
-                credentials: 'same-origin'
+                body: options.body,
+                credentials: 'include'
             });
 
             const data = await response.json();
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Request failed');
-            }
-
             return data;
+
         } catch (error) {
             console.error('API Error:', error);
             throw error;
@@ -34,77 +34,74 @@ const API = {
 
     auth: {
         async register(username, password) {
-            return API.request('/auth/register', {
+            return this.request('/auth/register', {
                 method: 'POST',
                 body: JSON.stringify({ username, password })
             });
         },
 
         async login(username, password) {
-            return API.request('/auth/login', {
+            return this.request('/auth/login', {
                 method: 'POST',
                 body: JSON.stringify({ username, password })
             });
         },
 
-        async verifySession(token) {
-            return API.request('/auth/verify-session', {
-                method: 'POST',
-                body: JSON.stringify({ sessionToken: token })
+        async verifySession() {
+            const token = localStorage.getItem('sessionToken');
+            if (!token) return { success: false, valid: false };
+
+            return this.request('/auth/verify', {
+                method: 'POST'
             });
         },
 
-        async logout(token) {
-            return API.request('/auth/logout', {
-                method: 'POST',
-                body: JSON.stringify({ sessionToken: token })
+        async logout() {
+            return this.request('/auth/logout', {
+                method: 'POST'
             });
         }
     },
 
     wallet: {
         async getBalance(address) {
-            return API.request(`/wallet/balance/${address}`);
+            return this.request(`/wallet/balance/${address}`);
         },
-
         async getHistory(address) {
-            return API.request(`/wallet/history/${address}`);
+            return this.request(`/wallet/history/${address}`);
         },
-
         async getTokens(address) {
-            return API.request(`/wallet/tokens/${address}`);
+            return this.request(`/wallet/tokens/${address}`);
         }
     },
 
     game: {
         async explore(address, x, z) {
-            return API.request('/game/explore', {
+            return this.request('/game/explore', {
                 method: 'POST',
                 body: JSON.stringify({ address, x, z })
             });
         },
-
         async getMapState(address) {
-            return API.request(`/game/map-state/${address}`);
+            return this.request(`/game/map-state/${address}`);
         },
-
         async getConfig() {
-            return API.request('/game/config');
+            return this.request('/game/config');
         }
     },
 
     staking: {
         async getStatus(address) {
-            return API.request(`/staking/status/${address}`);
+            return this.request(`/staking/status/${address}`);
         },
         async stake(address, amount) {
-            return API.request('/staking/stake', {
+            return this.request('/staking/stake', {
                 method: 'POST',
                 body: JSON.stringify({ address, amount })
             });
         },
         async unstake(address) {
-            return API.request('/staking/unstake', {
+            return this.request('/staking/unstake', {
                 method: 'POST',
                 body: JSON.stringify({ address })
             });
@@ -113,66 +110,64 @@ const API = {
 
     transfers: {
         async transfer(fromAddress, toAddress, amount) {
-            return API.request('/transfers/transfer', {
+            return this.request('/transfers/transfer', {
                 method: 'POST',
                 body: JSON.stringify({ fromAddress, toAddress, amount })
             });
         },
         async getFeeInfo() {
-            return API.request('/transfers/fee-info');
+            return this.request('/transfers/fee-info');
         }
     },
 
     coldWallet: {
         async deposit(address, amount) {
-            return API.request('/cold-wallet/deposit', {
+            return this.request('/cold-wallet/deposit', {
                 method: 'POST',
                 body: JSON.stringify({ address, amount })
             });
         },
         async withdraw(address, amount) {
-            return API.request('/cold-wallet/withdraw', {
+            return this.request('/cold-wallet/withdraw', {
                 method: 'POST',
                 body: JSON.stringify({ address, amount })
             });
         },
         async getBalance(address) {
-            return API.request(`/cold-wallet/balance/${address}`);
+            return this.request(`/cold-wallet/balance/${address}`);
         }
     },
 
     difficulty: {
         async getStatus() {
-            return API.request('/difficulty/status');
+            return this.request('/difficulty/status');
         }
     },
 
     protocolRewards: {
         async getPoolStatus() {
-            return API.request('/protocol-rewards/pool-status');
+            return this.request('/protocol-rewards/pool-status');
         },
         async getMyRewards(address) {
-            return API.request(`/protocol-rewards/my-rewards/${address}`);
+            return this.request(`/protocol-rewards/my-rewards/${address}`);
         }
     },
 
     halving: {
         async getStatus() {
-            return API.request('/halving/status');
+            return this.request('/halving/status');
         }
     },
 
     stats: {
         async getGlobal() {
-            return API.request('/stats/global');
+            return this.request('/stats/global');
         },
-
         async getLeaderboard() {
-            return API.request('/stats/leaderboard');
+            return this.request('/stats/leaderboard');
         },
-
         async getBiomes() {
-            return API.request('/stats/biomes');
+            return this.request('/stats/biomes');
         }
     }
 };
