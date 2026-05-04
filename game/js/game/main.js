@@ -34,8 +34,8 @@ const Game = {
     async init() {
         console.log('🎮 Initializing Exploration Coin...');
 
-        GameUI.init();
         AudioManager.init();
+        GameUI.init();
 
         const sessionToken = localStorage.getItem('sessionToken');
         if (sessionToken) {
