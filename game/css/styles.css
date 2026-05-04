@@ -50,13 +50,17 @@ body {
     align-items: center;
     justify-content: center;
     background: linear-gradient(135deg, var(--background) 0%, #1a1a2e 100%);
-    position: relative;
-    z-index: 1;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
 }
 
 #auth-screen.active {
     display: flex;
-    z-index: 1;
+    z-index: 9999;
 }
 
 .auth-container {
@@ -180,7 +184,8 @@ body {
     text-transform: uppercase;
     letter-spacing: 2px;
     position: relative;
-    z-index: 1000;
+    z-index: 10000;
+    pointer-events: auto;
 }
     font-size: 1rem;
     font-weight: 700;
@@ -254,6 +259,10 @@ body {
     word-spacing: 8px;
     margin-bottom: 20px;
     letter-spacing: 2px;
+}
+
+#game-screen {
+    display: none;
 }
 
 #game-screen.active {
