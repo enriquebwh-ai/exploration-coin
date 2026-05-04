@@ -50,22 +50,32 @@ const GameUI = {
     },
 
     bindEvents() {
+        console.log('Binding events, registerForm:', this.elements.registerForm);
+
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
+                console.log('Tab clicked:', btn.dataset.tab);
                 this.switchTab(btn.dataset.tab);
             });
         });
 
-        this.elements.loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleLogin();
-        });
+        if (this.elements.loginForm) {
+            this.elements.loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleLogin();
+            });
+        }
 
-        this.elements.registerForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleRegister();
-        });
+        if (this.elements.registerForm) {
+            this.elements.registerForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                console.log('Register form submitted!');
+                this.handleRegister();
+            });
+        } else {
+            console.error('registerForm not found!');
+        }
 
         this.elements.autoExploreBtn.addEventListener('click', () => {
             Exploration.toggleAutoExplore();
